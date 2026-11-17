@@ -1,3 +1,4 @@
+# RUN IT FROM COMMAND LINE IN RECOVERY MODE! - NOT USING SCRIPT, MANUALLY PER-LINE
 #shutdown /r /o /f /t 0
 
 reg load HKLM\OFFLINE C:\Windows\System32\config\SYSTEM
