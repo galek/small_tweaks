@@ -1,3 +1,5 @@
+#Requires -RunAsAdministrator
+
 # Helper function to safely set registry values
 function Set-RegistryValue {
     param (
@@ -11,6 +13,8 @@ function Set-RegistryValue {
     }
     Set-ItemProperty -Path $Path -Name $Name -Value $Value -Type $Type -Force
 }
+
+Write-Host "Applying Windows 11 26H2 configuration tweaks..." -ForegroundColor Cyan
 
 # 1. Disable: Let websites show locally relevant content by accessing my language list
 Set-RegistryValue -Path "HKCU:\Control Panel\International\User Profile" -Name "HttpAcceptLanguageOptOut" -Value 1
