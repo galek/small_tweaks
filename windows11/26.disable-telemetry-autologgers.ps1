@@ -1,10 +1,8 @@
 #Requires -RunAsAdministrator
 
-# Helper function to take ownership and grant FullControl to Administrators on protected registry keys
 function Enable-RegistryKeyAccess {
     param ([string]$SubKeyPath)
     
-    # Enable SeTakeOwnershipPrivilege for the current PowerShell process
     $definition = @"
     using System;
     using System.Runtime.InteropServices;
@@ -31,14 +29,13 @@ function Enable-RegistryKeyAccess {
     Add-Type -TypeDefinition $definition -ErrorAction SilentlyContinue
     [TokenManipulator]::AddPrivilege("SeTakeOwnershipPrivilege")
 
-    $adminSid = New-Object System.Security.Principal.SecurityIdentifier("S-1-5-32-544") # Built-in Administrators
+    $adminSid = New-Object System.Security.Principal.SecurityIdentifier("S-1-5-32-544")
     $key = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey($SubKeyPath, [Microsoft.Win32.RegistryKeyPermissionCheck]::ReadWriteSubTree, [System.Security.AccessControl.RegistryRights]::TakeOwnership)
     $acl = $key.GetAccessControl()
     $acl.SetOwner($adminSid)
     $key.SetAccessControl($acl)
     $key.Close()
 
-    # Grant FullControl to Administrators
     $key = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey($SubKeyPath, [Microsoft.Win32.RegistryKeyPermissionCheck]::ReadWriteSubTree, [System.Security.AccessControl.RegistryRights]::ChangePermissions)
     $acl = $key.GetAccessControl()
     $rule = New-Object System.Security.AccessControl.RegistryAccessRule($adminSid, "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow")
@@ -71,13 +68,17 @@ foreach ($logger in $autoLoggers) {
             Set-ItemProperty -Path $fullPath -Name "Start" -Value 0 -Type DWord -Force -ErrorAction Stop
             Write-Host "Disabled AutoLogger: $logger" -ForegroundColor DarkGray
         }
-        catch [System.UnauthorizedAccessException] {
-            Write-Host "Taking ownership of protected key: $logger..." -ForegroundColor Yellow
-            Enable-RegistryKeyAccess -SubKeyPath $subKey
-            Set-ItemProperty -Path $fullPath -Name "Start" -Value 0 -Type DWord -Force
-            Write-Host "Disabled AutoLogger: $logger" -ForegroundColor DarkGray
+        catch {
+            try {
+                Enable-RegistryKeyAccess -SubKeyPath $subKey
+                Set-ItemProperty -Path $fullPath -Name "Start" -Value 0 -Type DWord -Force -ErrorAction Stop
+                Write-Host "Disabled protected AutoLogger: $logger" -ForegroundColor DarkGray
+            }
+            catch {
+                Write-Host "Skipped $logger (locked by active WdFilter kernel driver; reboot first and re-run)" -ForegroundColor Yellow
+            }
         }
     }
 }
 
-Write-Host "All diagnostic AutoLoggers disabled. Reboot to apply." -ForegroundColor Green
+Write-Host "Diagnostic AutoLoggers configuration completed." -ForegroundColor Green
