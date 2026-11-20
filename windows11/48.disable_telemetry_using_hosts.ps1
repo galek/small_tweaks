@@ -36,8 +36,7 @@ $domainParts = @(
     @("rad", "msn", "com"),
     @("events", "gfe", "nvidia", "com"),
     @("telemetry", "gfe", "nvidia", "com"),
-    @("telemetry", "nvidia", "com"),
-    @("gfwsl", "geforce", "com")
+    @("telemetry", "nvidia", "com")
 )
 
 $existingText = Get-Content -Path $hostsFile -Raw -ErrorAction SilentlyContinue
